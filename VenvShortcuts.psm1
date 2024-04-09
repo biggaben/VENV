@@ -1,6 +1,3 @@
-function Get-PythonVersion {
-    
-}
 
 function Global:Invoke-VenvCommand {
     param(
@@ -19,10 +16,9 @@ function Global:Invoke-VenvCommand {
 
     $VenvsBasePath = Join-Path -Path $env:USERPROFILE -ChildPath "venvs"
 
-    # Check if Action is provided; if not, display available options
     if (-not $Action -or $Action -eq "") {
         Write-Host "No action specified. Available actions are: create, delete, list, activate, deactivate"
-    }else{
+    } else {
         switch ($Action) {
             'create' {
                 $VenvPath = Join-Path -Path $VenvsBasePath -ChildPath $Name
@@ -49,28 +45,14 @@ function Global:Invoke-VenvCommand {
     }
 }
 
-function Get-VenvList {
-    param([string]$VenvsBasePath)
-    if (Test-Path $VenvsBasePath) {
-        $venvs = Get-ChildItem -Path $VenvsBasePath -Directory | Select-Object -ExpandProperty Name
-        if ($venvs) {
-            Write-Host "Existing virtual environments:"
-            $venvs | ForEach-Object { Write-Host $_ }
-        } else {
-            Write-Host "No virtual environments found."
-        }
-    } else {
-        Write-Host "The VENVs directory does not exist."
-    }
-}
-
 Set-Alias -Name 'venv' -Value 'Invoke-VenvCommand'
 
+# Refactoring New-VenvEnvironment to use a List for dynamic collections
 function New-VenvEnvironment {
     param(
         [Parameter(Position=0, Mandatory=$true)]
         [string]$VenvPath,
-
+        
         [Parameter(Position=1, Mandatory=$false)]
         [string]$Version=$null,
 
@@ -80,10 +62,13 @@ function New-VenvEnvironment {
 
     $jsonPath = Join-Path -Path $PSScriptRoot -ChildPath "PythonVersions.json"
 
-    # Load existing versions from JSON or initialize an empty list
-    $versionsList = @()
+    # Initialize versionsList as a List object
+    [System.Collections.Generic.List[object]]$versionsList = New-Object System.Collections.Generic.List[object]
     if (Test-Path $jsonPath) {
-        $versionsList = Get-Content $jsonPath | ConvertFrom-Json
+        $content = Get-Content $jsonPath | ConvertFrom-Json
+        foreach ($entry in $content) {
+            $versionsList.Add($entry)
+        }
     }
 
     if ($Version -and -not $PythonExePath) {
@@ -94,10 +79,8 @@ function New-VenvEnvironment {
             do {
                 $PythonExePath = Read-Host "Specify the path to python.exe"
                 if (Test-Path $PythonExePath -PathType Leaf) {
-                    # Check Python version
-                    $output = & $PythonExePath -V 2>&1
-                    $correctVersion = $output -match $Version
-                    
+                    $outputVersion = $(& $PythonExePath -V 2>&1).Split(' ')[-1]
+                    $correctVersion = $outputVersion -eq $Version
                     if (-not $correctVersion) {
                         Write-Host "The Python executable at $PythonExePath does not match the requested version $Version."
                     }
@@ -106,15 +89,15 @@ function New-VenvEnvironment {
                 }
             } while (-not $correctVersion)
 
-            $versionsList += [PSCustomObject]@{Version=$Version; Path=$PythonExePath}
-            $versionsList | ConvertTo-Json | Set-Content $jsonPath
+            $versionsList.Add([PSCustomObject]@{Version=$Version; Path=$PythonExePath})
+            $versionsList | ConvertTo-Json | Set-Content $jsonPath -Force
         }
     }
 
     if ($PythonExePath) {
         & $PythonExePath -m venv $VenvPath
     } else {
-        python -m venv $VenvPath
+        Write-Host "Python executable path was not provided or found; cannot create the virtual environment."
     }
 
     if ($?) {
@@ -123,7 +106,6 @@ function New-VenvEnvironment {
         Write-Host "Failed to create virtual environment at '$VenvPath'."
     }
 }
-
 
 function Remove-VenvEnvironment {
     param([string]$VenvPath)
