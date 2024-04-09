@@ -21,6 +21,8 @@ function Invoke-VenvCommand {
         [Parameter(Position=2, Mandatory=$false)]
         [string]$Version=$null
     )
+    # Update global variables
+    Get-PythonInfo
 
     if($Action -eq "c"){
         $Action = "create"
