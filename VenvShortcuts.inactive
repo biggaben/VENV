@@ -7,7 +7,7 @@ function Global:Venv-Command {
         [string]$Name=$null
     )
 
-    $VenvsBasePath = Join-Path -Path "D:\" -ChildPath "VENVs"
+    $VenvsBasePath = Join-Path -Path "%USERHOME%" -ChildPath "VENVs"
 
     # Check if Action is provided; if not, display available options
     if (-not $Action -or $Action -eq "") {
