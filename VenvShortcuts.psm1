@@ -1,13 +1,9 @@
-# Declare global variables
-$global:GlobPyVersion = ""
-$global:GlobPythonExePath = ""
-$global:VenvsBasePath = "I:\Venvs"
-$global:jsonPath = Join-Path -Path $PSScriptRoot -ChildPath "PythonVersions.json"
-
 # Example: Assuming Python is in your PATH environment variable
 function Get-PythonInfo {
-    $global:GlobPyVersion = (python --version).Split(' ')[1] 
-    $global:GlobPythonExePath = (Get-Command python).Path
+    $script:GlobPyVersion = (python --version).Split(' ')[1] 
+    $script:GlobPythonExePath = (Get-Command python).Path
+    $script:VenvsBasePath = "I:\Venvs"
+    $script:jsonPath = Join-Path -Path $PSScriptRoot -ChildPath "PythonVersions.json"
 }
 
 function Invoke-VenvCommand {
@@ -24,17 +20,17 @@ function Invoke-VenvCommand {
     # Update global variables
     Get-PythonInfo
 
-    if($Action -eq "c"){
+    if($Action -eq "c" -or $Action -eq "create"){
         $Action = "create"
-    } elseif($Action -eq "r"){
+    } elseif($Action -eq "r" -or $Action -eq "remove"){
         $Action = "remove"
-    } elseif($Action -eq "a"){
+    } elseif($Action -eq "a" -or $Action -eq "activate"){
         $Action = "activate"
-    } elseif($Action -eq "d"){
+    } elseif($Action -eq "d" -or $Action -eq "deactivate"){
         $Action = "deactivate"
-    } elseif($Action -eq "l"){
+    } elseif($Action -eq "l" -or $Action -eq "list"){
         $Action = "list"
-    } elseif($Action -eq "h"){
+    } elseif($Action -eq "h" -or $Action -eq "help"){
         $Action = "help"
     }else{
         Write-Host "Invalid command. Use 'create' (c), 'remove' (r), 'activate' (a), 'deactivate' (d), or 'list' (l)."
@@ -71,7 +67,7 @@ function Invoke-VenvCommand {
 }
 
 function Get-VenvList {
-    $venvs = Get-ChildItem -Path $global:VenvsBasePath -Directory | Select-Object -ExpandProperty Name
+    $venvs = Get-ChildItem -Path $script:VenvsBasePath -Directory | Select-Object -ExpandProperty Name
     if ($venvs) {
         Write-Host "Existing virtual environments:"
         $venvs | ForEach-Object { Write-Host $_ }
@@ -91,8 +87,8 @@ function New-VenvEnvironment {
 
     if ($null -eq $Version -or $Version -eq "") {
         # Use the default Python interpreter to create the virtual environment
-        python -m venv "$global:VenvsBasePath\$Name"
-        Write-Host "Virtual environment created at $global:VenvsBasePath\$Name with system default Python version($global:GlobPyVersion)."
+        python -m venv "$script:VenvsBasePath\$Name"
+        Write-Host "Virtual environment created at $script:VenvsBasePath\$Name with system default Python version($script:GlobPyVersion)."
     } else {
         $PythonExePath = $null
         $jsonPath = Join-Path -Path $PSScriptRoot -ChildPath "PythonVersions.json"
@@ -140,8 +136,8 @@ function New-VenvEnvironment {
             }
             
             # Ensure this command executes regardless of whether a stored match was found or user provided a new path
-            & $PythonExePath -m venv "$global:VenvsBasePath\$Name"
-            Write-Host "Virtual environment created successfully at '$global:VenvsBasePath\$Name'."
+            & $PythonExePath -m venv "$script:VenvsBasePath\$Name"
+            Write-Host "Virtual environment created successfully at '$script:VenvsBasePath\$Name'."
         } else {
             Write-Host "JSON file missing. Please create a file named 'PythonVersions.json' in ${PSScriptRoot}:"
         }
@@ -155,7 +151,7 @@ function Enable-VenvActivation {
         [string]$Name
     )
 
-    $VenvPath = Join-Path -Path $global:VenvsBasePath -ChildPath $Name
+    $VenvPath = Join-Path -Path $script:VenvsBasePath -ChildPath $Name
     $scriptPath = Join-Path -Path $VenvPath -ChildPath "Scripts\Activate.ps1"
     if (Test-Path $scriptPath) {
         & $scriptPath
@@ -176,7 +172,7 @@ function Remove-VenvEnvironment {
     [Parameter(Position=0, Mandatory=$true)]
     [string]$Name=$null
 
-    $VenvPath = Join-Path -Path $global:VenvsBasePath -ChildPath $Name
+    $VenvPath = Join-Path -Path $script:VenvsBasePath -ChildPath $Name
     if (Test-Path $VenvPath) {
         Remove-Item -Path $VenvPath -Recurse -Force
         Write-Host "Virtual environment '$Name' removed."
