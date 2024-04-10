@@ -89,10 +89,10 @@ function New-VenvEnvironment {
         [string]$Version = $null
     )
 
-    if ($null -eq $Version) {
+    if ($null -eq $Version -or $Version -eq "") {
         # Use the default Python interpreter to create the virtual environment
         python -m venv "$global:VenvsBasePath\$Name"
-        Write-Host "Virtual environment created at: $global:VenvsBasePath\$Name"
+        Write-Host "Virtual environment created at $global:VenvsBasePath\$Name with system default Python version($global:GlobPyVersion)."
     } else {
         $PythonExePath = $null
         $jsonPath = Join-Path -Path $PSScriptRoot -ChildPath "PythonVersions.json"
@@ -107,6 +107,7 @@ function New-VenvEnvironment {
                 $userResponse = Read-Host "Do you want to enter a path to a Python v.$Version executable? (y/N)"
                 
                 if ($userResponse -eq "y") {
+                    
                     $PythonExePath = Read-Host "Enter the path to the Python v.$Version executable"
                     
                     if (-not (Test-Path -PathType Leaf $PythonExePath)) {
