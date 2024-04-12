@@ -87,8 +87,9 @@ function New-VenvEnvironment {
 
     if ($null -eq $Version -or $Version -eq "") {
         # Use the default Python interpreter to create the virtual environment
-        python -m venv "$script:VenvsBasePath\$Name"
-        Write-Host "Virtual environment created at $script:VenvsBasePath\$Name with system default Python version($script:GlobPyVersion)."
+        $VenvPath = Join-Path -Path $script:VenvsBasePath -ChildPath $Name
+        python -m venv $VenvPath
+        Write-Host "Virtual environment created at $VenvPath with system default Python version($script:GlobPyVersion)."
     } else {
         $PythonExePath = $null
         $jsonPath = Join-Path -Path $PSScriptRoot -ChildPath "PythonVersions.json"
@@ -136,8 +137,9 @@ function New-VenvEnvironment {
             }
             
             # Ensure this command executes regardless of whether a stored match was found or user provided a new path
-            & $PythonExePath -m venv "$script:VenvsBasePath\$Name"
-            Write-Host "Virtual environment created successfully at '$script:VenvsBasePath\$Name'."
+            $VenvPath = Join-Path -Path $script:VenvsBasePath -ChildPath $Name
+            & $PythonExePath -m venv $VenvPath
+            Write-Host "Virtual environment created successfully at '$VenvPath'."
         } else {
             Write-Host "JSON file missing. Please create a file named 'PythonVersions.json' in ${PSScriptRoot}:"
         }
@@ -169,8 +171,10 @@ function Disable-VenvActivation {
 }
 
 function Remove-VenvEnvironment {
-    [Parameter(Position=0, Mandatory=$true)]
-    [string]$Name=$null
+    param(
+        [Parameter(Position=0, Mandatory=$true)]
+        [string]$Name=$null
+    )
 
     $VenvPath = Join-Path -Path $script:VenvsBasePath -ChildPath $Name
     if (Test-Path $VenvPath) {
@@ -183,6 +187,7 @@ function Remove-VenvEnvironment {
 
 function Get-Help {
     param([string]$VenvsHelpFile)
+    
     if (Test-Path $VenvsHelpFile) {
         Get-Content $VenvsHelpFile
     } else {
